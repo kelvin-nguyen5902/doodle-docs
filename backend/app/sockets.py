@@ -180,6 +180,18 @@ def on_yjs_update(data):
     )
 
 
+@socketio.on("yjs_html_snapshot")
+def on_yjs_html_snapshot(data):
+    """Accepts a trailing HTML snapshot once typing settles, so the checkpoint
+    saved on idle reflects the final text rather than a throttled mid-edit one."""
+    conn = connections.get(request.sid)
+    doc_id = (data or {}).get("document_id")
+    html = (data or {}).get("html")
+    if not conn or not doc_id or html is None or doc_id not in conn["document_ids"]:
+        return
+    yjs_service.set_pending_html(doc_id, html)
+
+
 @socketio.on("yjs_awareness")
 def on_yjs_awareness(data):
     """Relays a cursor/presence awareness update to the rest of the room."""

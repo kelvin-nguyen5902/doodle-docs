@@ -21,6 +21,12 @@ const YJS_ROOT_KEY = "default";
 // How often a local edit attaches an HTML snapshot for the backend to save.
 const HTML_SNAPSHOT_THROTTLE_MS = 4000;
 
+// How long to wait after the last edit before sending a trailing HTML
+// snapshot. Guarantees the final keystroke's content gets saved even when it
+// lands inside the throttle window above, well before the backend's 2s idle
+// checkpoint fires.
+const HTML_SNAPSHOT_SETTLE_MS = 800;
+
 // Renders a peer's cursor caret with their name label.
 function renderCaret(user: { name?: string; color?: string }): HTMLElement {
   const color = user.color || "#9a9284";
@@ -178,6 +184,7 @@ export function useCollaborativeEditor({ docId, canEdit, userName, userColor, on
   }, [awareness, canEdit, userName, userColor]);
 
   const lastHtmlEmitRef = useRef(0);
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Wires the Y.Doc and awareness to the socket, syncing local edits out and
   // remote edits in.
@@ -200,6 +207,17 @@ export function useCollaborativeEditor({ docId, canEdit, userName, userColor, on
       }
       socket.emit("yjs_update", { document_id: docId, update, html });
       setSaveState("saved");
+
+      // Schedules a trailing snapshot once edits settle, so a throttled
+      // (html-less) update here doesn't leave a stale mid-edit snapshot as
+      // the last thing the backend has to checkpoint.
+      clearTimeout(settleTimeoutRef.current);
+      settleTimeoutRef.current = setTimeout(() => {
+        const finalHtml = editorRef.current?.getHTML();
+        if (finalHtml === undefined) return;
+        lastHtmlEmitRef.current = Date.now();
+        socket?.emit("yjs_html_snapshot", { document_id: docId, html: finalHtml });
+      }, HTML_SNAPSHOT_SETTLE_MS);
     };
     ydoc.on("update", onLocalDocUpdate);
 
@@ -248,6 +266,7 @@ export function useCollaborativeEditor({ docId, canEdit, userName, userColor, on
 
     return () => {
       cancelled = true;
+      clearTimeout(settleTimeoutRef.current);
       ydoc.off("update", onLocalDocUpdate);
       awareness.off("update", onLocalAwarenessUpdate);
       socket?.off("yjs_sync", onSync);
