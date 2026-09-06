@@ -232,13 +232,19 @@ def delete_document(doc_id: str):
     _db().table("documents").delete().eq("id", doc_id).execute()
 
 
+def _touch_document(doc_id: str) -> None:
+    """Bumps the parent document's updated_at, so the dashboard's last-edited
+    time reflects drawing changes too, not just text/title edits."""
+    _db().table("documents").update({"updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", doc_id).execute()
+
+
 def update_strokes(doc_id: str, strokes: list):
     """Replaces a document's full strokes list, enforcing the point limit."""
     if _total_points(strokes) > MAX_DRAWING_POINTS:
         raise ApiError("drawing limit reached, delete some ink to draw more", 400)
-    _db().table("document_drawings").update(
-        {"strokes": strokes, "updated_at": datetime.now(timezone.utc).isoformat()}
-    ).eq("document_id", doc_id).execute()
+    now = datetime.now(timezone.utc).isoformat()
+    _db().table("document_drawings").update({"strokes": strokes, "updated_at": now}).eq("document_id", doc_id).execute()
+    _touch_document(doc_id)
 
 
 def add_stroke(doc_id: str, stroke: dict) -> list:
@@ -248,9 +254,9 @@ def add_stroke(doc_id: str, stroke: dict) -> list:
         if _total_points(current) + len(stroke.get("pts") or []) > MAX_DRAWING_POINTS:
             raise ApiError("drawing limit reached, delete some ink to draw more", 400)
         next_strokes = current + [stroke]
-        _db().table("document_drawings").update(
-            {"strokes": next_strokes, "updated_at": datetime.now(timezone.utc).isoformat()}
-        ).eq("document_id", doc_id).execute()
+        now = datetime.now(timezone.utc).isoformat()
+        _db().table("document_drawings").update({"strokes": next_strokes, "updated_at": now}).eq("document_id", doc_id).execute()
+        _touch_document(doc_id)
         return next_strokes
 
 
