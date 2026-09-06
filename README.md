@@ -2,7 +2,7 @@
 
 A full-stack document collaboration app with live text editing and drawing.
 
-**Live app:** https://doodle-docs-murex.vercel.app/
+**Live app:** https://doodle-docs-rho.vercel.app/
 
 ## Features
 
