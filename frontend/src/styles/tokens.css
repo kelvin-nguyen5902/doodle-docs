@@ -1,0 +1,222 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
+
+:root {
+  --ac: #2f6fed;
+  --bg: #f1ece2;
+  --card: #fffdf7;
+  --border: #e0d8c8;
+  --border-input: #ddd4c4;
+  --divider: #eae3d5;
+  --border-dashed: #d6ccba;
+  --text: #1c1a16;
+  --text-secondary: #6f6a5e;
+  --text-muted: #9a9284;
+  --danger: #a33a24;
+  --danger-bg: #f9ece5;
+  --danger-border: #eed3c5;
+  --pending-text: #b07a1a;
+  --pending-bg: #f8eedb;
+  --pending-border: #eadfbf;
+  --active-row: #ece5d7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Geist", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--ac);
+  text-decoration: none;
+}
+a:hover {
+  color: #2557bd;
+}
+
+[contenteditable] {
+  outline: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+input:focus {
+  outline: none;
+}
+
+.mono {
+  font-family: "Geist Mono", monospace;
+}
+
+.doc-typography h1 {
+  font-size: 34px;
+  line-height: 1.2;
+  margin: 26px 0 10px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.doc-typography h2 {
+  font-size: 24px;
+  line-height: 1.25;
+  margin: 22px 0 8px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.doc-typography p {
+  margin: 0 0 14px;
+}
+.doc-typography ul,
+.doc-typography ol {
+  margin: 0 0 14px;
+  padding-left: 26px;
+}
+.doc-typography li {
+  margin: 0 0 6px;
+}
+.doc-typography b,
+.doc-typography strong {
+  font-weight: 600;
+}
+
+/* browsers dim a text selection's highlight to gray once the element
+   holding it loses focus (e.g. clicking the toolbar's colour swatch,
+   which lives outside the editor) — the selection itself is untouched,
+   it just looks like it vanished. A custom ::selection colour isn't
+   subject to that automatic dimming, so it stays visible regardless of
+   focus, matching what you're about to apply a colour to. */
+.doc-typography ::selection {
+  background: rgba(47, 111, 237, 0.35);
+}
+
+/* cut off with an ellipsis while just sitting in the header, but once
+   focused (to rename it, or to check the full name) fall back to the
+   input's native scrolling — via arrow keys, drag-select, or touch
+   panning — instead of staying clipped */
+.editor-title-input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.editor-title-input:focus {
+  overflow-x: auto;
+  text-overflow: clip;
+}
+
+.sidebar-nav-btn {
+  background: var(--card);
+  transition: background 0.1s ease-out;
+}
+.sidebar-nav-btn:hover {
+  background: var(--active-row);
+}
+
+/* 100vh on mobile browsers is measured against the layout viewport, which
+   excludes the address bar's collapsed/expanded state — it doesn't match
+   the actual visible area, so a sticky full-height sidebar can fall short
+   of (or overshoot) the real screen. 100dvh tracks the real visible
+   viewport; kept as a second declaration so unsupported browsers keep the
+   100vh fallback (can't express that with a single inline style value). */
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.sidebar-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.invites-page {
+  padding: 44px 52px;
+}
+.invite-card {
+  padding: 16px 18px;
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+.invite-card-actions {
+  flex: none;
+  margin-left: auto;
+}
+
+@media (max-width: 560px) {
+  .invites-page {
+    padding: 24px 16px;
+  }
+  .invite-card {
+    padding: 14px 16px;
+  }
+}
+
+.page-heading {
+  font-size: 32px;
+}
+.sidebar-logo-text {
+  font-size: 17px;
+}
+
+@media (max-width: 480px) {
+  .page-heading {
+    font-size: 24px;
+  }
+  .sidebar-logo-text {
+    font-size: 15px;
+  }
+}
+
+.doc-scroll {
+  scrollbar-width: auto;
+  scrollbar-color: var(--border-input) transparent;
+}
+.doc-scroll::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+.doc-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.doc-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-input);
+  border-radius: 99px;
+  border: 3px solid var(--bg);
+}
+.doc-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
