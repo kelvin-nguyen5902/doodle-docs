@@ -130,7 +130,7 @@ def signup():
 
     existing = get_supabase_admin().table("profiles").select("id").eq("username", username).maybe_single().execute()
     if existing and existing.data:
-        raise ApiError("that username is already taken", 409)
+        raise ApiError("username already exists", 409)
 
     has_email = bool(email)
     auth_email = email if has_email else f"{username}@{NOEMAIL_DOMAIN}"
@@ -147,7 +147,9 @@ def signup():
     except Exception as e:
         message = getattr(e, "message", "") or str(e)
         if "Database error saving new user" in message:
-            raise ApiError("that username is already taken", 409)
+            raise ApiError("username already exists", 409)
+        if "already registered" in message.lower():
+            raise ApiError("account with that email already exists", 409)
         _raise_from_auth_error(e, 400)
 
     if res.session is None:
