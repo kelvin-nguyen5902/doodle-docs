@@ -76,13 +76,22 @@ export function useDrawing(
       ctx.save();
       ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
       ctx.strokeStyle = s.color;
+      ctx.fillStyle = s.color;
       ctx.lineWidth = s.size;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(s.pts[0].x, s.pts[0].y);
-      s.pts.forEach((p) => ctx.lineTo(p.x, p.y));
-      ctx.stroke();
+      if (s.pts.length === 1) {
+        // A tap with no drag is a zero-length path — WebKit (iOS Safari) doesn't
+        // render a round line cap's dot for that, so draw the dot explicitly.
+        ctx.beginPath();
+        ctx.arc(s.pts[0].x, s.pts[0].y, s.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(s.pts[0].x, s.pts[0].y);
+        s.pts.forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.stroke();
+      }
       ctx.restore();
     });
   }, [strokes, peerStrokes, liveStroke]);
