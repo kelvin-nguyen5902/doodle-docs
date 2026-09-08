@@ -28,8 +28,16 @@ A full-stack document collaboration app with live text editing and drawing.
 
 ## Running locally
 
-Running locally requires to have environment variables setup as specified in frontend/.env.example and backend/.env.example.
-Make sure you have Docker running and from the project root run:
+The app uses Supabase for its database and authentication. To setup your own Supabase project:
+
+1. Create a project at https://supabase.com .
+2. Open the SQL Editor and copy and paste contents from supabase/schema.sql
+3. Under Authentication > Providers > Email, turn Confirm email off.
+4. Under Authentication > URL Configuration > Site URL, change to `http://localhost:5173`
+5. Under Authentication > URL Configuration > Redirect URLs, add `http://localhost:5173/reset-password`
+
+After setting up your Supabase project, create a backend/.env file as specified in
+backend/.env.example. Then, from the root folder, run:
 
 ```bash
 docker compose up --build
