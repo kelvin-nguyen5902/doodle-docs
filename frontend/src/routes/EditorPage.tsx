@@ -119,6 +119,12 @@ export default function EditorPage() {
         drawing={drawingHook.drawing}
         delMode={drawingHook.delMode}
         eraser={drawingHook.eraser}
+        peerCursors={Object.values(drawingHook.peerStrokes).flatMap((s) => {
+          const point = s.pts[s.pts.length - 1];
+          const member = members.find((m) => m.user_id === s.userId);
+          if (!point || !member) return [];
+          return [{ userId: s.userId, x: point.x, y: point.y, name: member.name, color: member.color }];
+        })}
         onPointerDown={drawingHook.onPointerDown}
         onPointerMove={drawingHook.onPointerMove}
         onPointerUp={drawingHook.onPointerUp}

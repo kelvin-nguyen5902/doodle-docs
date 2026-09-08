@@ -1,16 +1,61 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { EditorContent, type Editor } from "@tiptap/react";
 
+export interface PeerCursor {
+  userId: string;
+  x: number;
+  y: number;
+  name: string;
+  color: string;
+}
+
 interface Props {
   editor: Editor | null;
   canvasRef: RefObject<HTMLCanvasElement>;
   drawing: boolean;
   delMode: boolean;
   eraser: boolean;
+  peerCursors: PeerCursor[];
   onPointerDown: (e: React.PointerEvent<HTMLCanvasElement>, onMiss?: () => void) => void;
   onPointerMove: (e: React.PointerEvent<HTMLCanvasElement>) => void;
   onPointerUp: () => void;
   onMissStroke: () => void;
+}
+
+// A peer's live pointer while they're actively drawing a stroke.
+function DrawingCursor({ x, y, name, color }: PeerCursor) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: x,
+        top: y,
+        transform: "translate(-50%, -50%)",
+        pointerEvents: "none",
+        zIndex: 3,
+      }}
+    >
+      <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, border: "2px solid var(--card)", boxShadow: "0 1px 3px rgba(0,0,0,.25)" }} />
+      <span
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 8,
+          whiteSpace: "nowrap",
+          background: color,
+          color: "#fffdf7",
+          fontSize: "10.5px",
+          fontWeight: 500,
+          padding: "2px 6px",
+          borderRadius: "5px 5px 5px 0",
+          letterSpacing: ".04em",
+          fontFamily: "'Geist Mono', monospace",
+        }}
+      >
+        {name}
+      </span>
+    </div>
+  );
 }
 
 const PAGE_WIDTH = 820;
@@ -22,6 +67,7 @@ export default function DocumentCanvas({
   drawing,
   delMode,
   eraser,
+  peerCursors,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -96,6 +142,9 @@ export default function DocumentCanvas({
               cursor: delMode ? "pointer" : eraser ? "cell" : "crosshair",
             }}
           />
+          {peerCursors.map((c) => (
+            <DrawingCursor key={c.userId} {...c} />
+          ))}
         </div>
       </div>
     </div>

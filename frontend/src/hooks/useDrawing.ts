@@ -8,7 +8,7 @@ const DEFAULT_COLOR = "#c2410c";
 export const MAX_DRAWING_POINTS = 5000;
 const LIMIT_WARNING_THROTTLE_MS = 2000;
 
-interface PeerStroke extends Stroke {
+export interface PeerStroke extends Stroke {
   userId: string;
 }
 
@@ -312,6 +312,7 @@ export function useDrawing(
   return {
     canvasRef,
     strokes,
+    peerStrokes,
     drawing,
     toggleDraw: () =>
       setDrawing((d) => {
