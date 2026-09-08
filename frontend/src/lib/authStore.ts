@@ -67,6 +67,14 @@ function fromSessionPayload(payload: SessionPayload): TokenSet {
   };
 }
 
+class AuthFetchError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function authFetch(path: string, body: unknown): Promise<SessionPayload> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
@@ -75,7 +83,7 @@ async function authFetch(path: string, body: unknown): Promise<SessionPayload> {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data?.error || "Something went wrong.");
+    throw new AuthFetchError(data?.error || "Something went wrong.", res.status);
   }
   return data as SessionPayload;
 }
@@ -140,7 +148,7 @@ export async function signOut(): Promise<void> {
 
 // Delays between retrying a failed token refresh, to ride out transient
 // network or backend blips instead of logging the user out unnecessarily.
-const REFRESH_RETRY_DELAYS_MS = [1500, 3000, 6000, 10000];
+const REFRESH_RETRY_DELAYS_MS = [1500, 3000];
 
 // Refreshes the access token, retrying with backoff before giving up.
 export async function refreshTokens(): Promise<TokenSet | null> {
@@ -155,8 +163,13 @@ export async function refreshTokens(): Promise<TokenSet | null> {
         const next = fromSessionPayload(payload);
         setTokens(next);
         return next;
-      } catch {
-        if (attempt >= REFRESH_RETRY_DELAYS_MS.length) {
+      } catch (err) {
+        // A rejected refresh token (expired, revoked, already rotated) is a
+        // definitive 4xx that will never succeed on retry — only network
+        // blips and backend 5xxs are worth riding out with backoff.
+        const status = err instanceof AuthFetchError ? err.status : undefined;
+        const permanent = status !== undefined && status < 500;
+        if (permanent || attempt >= REFRESH_RETRY_DELAYS_MS.length) {
           setTokens(null);
           return null;
         }
