@@ -46,6 +46,19 @@ export default function AuthPage() {
     return () => clearTimeout(timeout);
   }, [justResetPassword]);
 
+  // Login, register, and forgot-password share the email/password fields —
+  // clear them on every switch so one form's input doesn't carry into another.
+  function switchMode(next: "login" | "register" | "forgot") {
+    setMode(next);
+    setEmail("");
+    setPassword("");
+    setConfirm("");
+    setFullName("");
+    setUsername("");
+    setError("");
+    setResetSent(false);
+  }
+
   if (isAuthenticated) return <Navigate to="/" replace />;
 
   const isRegister = mode === "register";
@@ -188,11 +201,7 @@ export default function AuthPage() {
               )}
               <button
                 type="button"
-                onClick={() => {
-                  setMode("login");
-                  setError("");
-                  setResetSent(false);
-                }}
+                onClick={() => switchMode("login")}
                 style={{
                   padding: 13,
                   border: "1px solid var(--border-input)",
@@ -250,11 +259,7 @@ export default function AuthPage() {
             {!isRegister && (
               <button
                 type="button"
-                onClick={() => {
-                  setMode("forgot");
-                  setError("");
-                  setResetSent(false);
-                }}
+                onClick={() => switchMode("forgot")}
                 style={{
                   alignSelf: "flex-end",
                   marginTop: -12,
@@ -315,10 +320,7 @@ export default function AuthPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setMode(isRegister ? "login" : "register");
-                setError("");
-              }}
+              onClick={() => switchMode(isRegister ? "login" : "register")}
               style={{
                 padding: 13,
                 border: "1px solid var(--border-input)",
