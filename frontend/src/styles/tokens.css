@@ -83,6 +83,14 @@ input:focus {
 .doc-typography p {
   margin: 0 0 14px;
 }
+/* A blank line serializes as a truly empty <p></p> (no <br>) — the live
+   editor keeps it visible via an editing-only trailing-break decoration
+   that never makes it into getHTML(), so static renders (dashboard preview)
+   need their own way to give it a line box, or consecutive blank lines
+   just collapse to zero height. */
+.doc-typography p:empty::before {
+  content: "\200b";
+}
 .doc-typography ul,
 .doc-typography ol {
   margin: 0 0 14px;
