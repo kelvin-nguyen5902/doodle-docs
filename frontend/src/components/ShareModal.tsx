@@ -90,7 +90,7 @@ export default function ShareModal({ docId, docTitle, isOwner, canInvite, onClos
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 600, letterSpacing: "-.02em" }}>Share "{docTitle}"</h3>
-            <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Only people listed below can open this document.</p>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Invite users to collaborate on this document with</p>
           </div>
           <button
             onClick={onClose}
