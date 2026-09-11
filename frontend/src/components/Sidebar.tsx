@@ -207,7 +207,7 @@ export default function Sidebar() {
                     {profile?.full_name || profile?.username}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {profile?.email || (profile?.full_name ? `@${profile.username}` : "")}
+                    {profile?.full_name ? `@${profile.username}` : ""}
                   </div>
                 </div>
                 <button onClick={() => navigate("/settings")} title="Settings" style={iconButtonStyle}>
