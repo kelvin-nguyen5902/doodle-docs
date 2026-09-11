@@ -46,6 +46,12 @@ docker compose up --build
 - Frontend: http://localhost:5173
 - Backend: http://localhost:5001
 
+To stop and remove the containers, run:
+
+```bash
+docker compose down
+```
+
 ## Tech stack
 
 - **Frontend**: React, TypeScript + Vite, Tiptap, socket.io-client
