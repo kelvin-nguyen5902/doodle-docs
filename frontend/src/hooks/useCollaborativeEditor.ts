@@ -288,5 +288,7 @@ export function useCollaborativeEditor({ docId, canEdit, userName, userColor, on
     };
   }, [docId, ydoc, awareness]);
 
-  return { editor, saveState, textColor, setTextColor };
+  const getLatestHtml = useCallback(() => editorRef.current?.getHTML(), []);
+
+  return { editor, saveState, textColor, setTextColor, getLatestHtml };
 }

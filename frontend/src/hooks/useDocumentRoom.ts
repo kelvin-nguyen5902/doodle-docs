@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
 import { getSocket } from "../lib/socket";
 import type { PresenceMember } from "../types";
 
 // Joins a document's collaboration room and tracks who else is present.
-export function useDocumentRoom(docId: string | undefined) {
+// getLatestHtml, if given, is read on leave and sent in the same
+// leave_document event so the backend's checkpoint-on-leave uses fresh
+// content instead of racing a separate yjs_html_snapshot event against it.
+export function useDocumentRoom(docId: string | undefined, getLatestHtml?: () => string | undefined) {
   const [members, setMembers] = useState<PresenceMember[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const getLatestHtmlRef = useRef(getLatestHtml);
+  getLatestHtmlRef.current = getLatestHtml;
 
   useEffect(() => {
     if (!docId) return;
@@ -38,7 +43,7 @@ export function useDocumentRoom(docId: string | undefined) {
     return () => {
       cancelled = true;
       if (socket) {
-        socket.emit("leave_document", { document_id: docId });
+        socket.emit("leave_document", { document_id: docId, html: getLatestHtmlRef.current?.() });
         socket.off("presence_update", onPresence);
         socket.off("join_error", onJoinError);
         socket.off("connect", onConnect);

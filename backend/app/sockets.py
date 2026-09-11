@@ -133,6 +133,10 @@ def on_leave_document(data):
     conn["document_ids"].discard(doc_id)
     room_members.get(doc_id, {}).pop(request.sid, None)
     _broadcast_presence(doc_id)
+    # Applied in this same handler call (not a separate yjs_html_snapshot
+    # event) so there's no cross-event race against the checkpoint below —
+    # both run on the same thread, one after the other, guaranteed in order.
+    yjs_service.set_pending_html(doc_id, (data or {}).get("html"))
     _maybe_checkpoint_and_evict(doc_id)
 
 

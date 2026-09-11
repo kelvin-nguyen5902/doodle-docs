@@ -19,20 +19,20 @@ export default function EditorPage() {
   const { profile } = useAuth();
   const { flash } = useToast();
   const { doc, loading, error } = useDocument(docId);
-  const { members } = useDocumentRoom(docId);
   const { refresh: refreshDocuments } = useDocumentsContext();
 
   // Every accepted collaborator can edit, there's no lesser "viewer" role.
   const canEdit = !!doc;
   const isOwner = doc?.role === "owner";
 
-  const { editor, saveState, textColor, setTextColor } = useCollaborativeEditor({
+  const { editor, saveState, textColor, setTextColor, getLatestHtml } = useCollaborativeEditor({
     docId,
     canEdit,
     userName: profile?.full_name || profile?.username || "You",
     userColor: colorForId(profile?.id || ""),
     onLimitReached: () => flash(`Documents are limited to ${MAX_DOCUMENT_CHARS} characters`),
   });
+  const { members } = useDocumentRoom(docId, getLatestHtml);
   const drawingHook = useDrawing(docId, doc?.strokes, canEdit, () =>
     flash("Drawing limit reached, delete some ink to draw more")
   );
