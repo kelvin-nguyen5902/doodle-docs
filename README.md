@@ -10,7 +10,7 @@ A full-stack document collaboration app with live text editing and drawing.
 - Text editing features such as bold, underline, italics, font size, font colour
 - Drawing features such as stroke colours, eraser, stroke delete, and adjustable brush size
 - Live presence: see who else is viewing a document and where their cursor is
-- Dashboard listing documents with live previews documents
+- Dashboard listing documents with live preview of documents
 - Document sharing via invitations, with accept/decline and pending invite tracking
 - Account signup/login with either username or email, with password reset
 - Account settings to edit name/username, signout, change your password, or delete your account
