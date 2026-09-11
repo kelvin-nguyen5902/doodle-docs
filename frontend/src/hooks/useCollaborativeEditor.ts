@@ -267,6 +267,14 @@ export function useCollaborativeEditor({ docId, canEdit, userName, userColor, on
     return () => {
       cancelled = true;
       clearTimeout(settleTimeoutRef.current);
+      // Flush the latest content immediately instead of just cancelling the
+      // pending trailing snapshot — otherwise navigating away shortly after
+      // an edit (e.g. right after pasting a large block of text) leaves the
+      // backend to checkpoint a stale, pre-edit HTML snapshot on disconnect.
+      const finalHtml = editorRef.current?.getHTML();
+      if (finalHtml !== undefined) {
+        socket?.emit("yjs_html_snapshot", { document_id: docId, html: finalHtml });
+      }
       ydoc.off("update", onLocalDocUpdate);
       awareness.off("update", onLocalAwarenessUpdate);
       socket?.off("yjs_sync", onSync);
