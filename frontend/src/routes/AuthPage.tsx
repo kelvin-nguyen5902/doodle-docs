@@ -164,7 +164,7 @@ export default function AuthPage() {
                   </div>
                   <label style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                     <span style={labelStyle}>Email</span>
-                    <input style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@studio.com" />
+                    <input style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
                   </label>
                   {error && (
                     <div
