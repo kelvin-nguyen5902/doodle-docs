@@ -1,7 +1,4 @@
 import re
-import time
-from collections import defaultdict
-from threading import Lock
 
 from flask import Blueprint, jsonify, request
 from gotrue.errors import AuthApiError
@@ -9,6 +6,7 @@ from gotrue.errors import AuthApiError
 from .. import config
 from ..errors import ApiError
 from ..extensions import get_supabase_admin, new_auth_client
+from ..services import rate_limit_service
 
 bp = Blueprint("auth", __name__)
 
@@ -18,69 +16,48 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$")
 # Fake email domain used for accounts signed up without a real email.
 NOEMAIL_DOMAIN = "noemail.invalid"
 
+# Rate limit state lives in Postgres (rate_limit_events), not in process
+# memory, so it survives backend restarts — including Render's free-tier
+# cold starts after the service spins down from inactivity, which would
+# otherwise silently reset every counter back to zero.
+
 SIGNUP_RATE_LIMIT = 10
 SIGNUP_RATE_WINDOW_SECONDS = 60 * 60  # 1 hour
-
-_signup_attempts: dict[str, list[float]] = defaultdict(list)
-_signup_attempts_lock = Lock()
 
 
 def _enforce_signup_rate_limit(ip: str):
     """Caps how many accounts a single IP can create per hour."""
-    now = time.time()
-    with _signup_attempts_lock:
-        attempts = [t for t in _signup_attempts[ip] if now - t < SIGNUP_RATE_WINDOW_SECONDS]
-        if len(attempts) >= SIGNUP_RATE_LIMIT:
-            _signup_attempts[ip] = attempts
-            raise ApiError("too many accounts created from this network — try again later", 429)
-        attempts.append(now)
-        _signup_attempts[ip] = attempts
+    key = f"signup:{ip}"
+    rate_limit_service.check(key, SIGNUP_RATE_LIMIT, SIGNUP_RATE_WINDOW_SECONDS, "too many accounts created from this network — try again later")
+    rate_limit_service.record(key)
 
 
 LOGIN_FAILURE_LIMIT = 10
 LOGIN_FAILURE_WINDOW_SECONDS = 60 * 60  # 1 hour
 
-_login_failures: dict[str, list[float]] = defaultdict(list)
-_login_failures_lock = Lock()
-
 
 def _enforce_login_rate_limit(key: str):
     """Caps failed login attempts per (ip, account) pair per hour."""
-    now = time.time()
-    with _login_failures_lock:
-        failures = [t for t in _login_failures[key] if now - t < LOGIN_FAILURE_WINDOW_SECONDS]
-        _login_failures[key] = failures
-        if len(failures) >= LOGIN_FAILURE_LIMIT:
-            raise ApiError("too many failed sign-in attempts — try again later", 429)
+    rate_limit_service.check(f"login:{key}", LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_WINDOW_SECONDS, "too many failed sign-in attempts — try again later")
 
 
 def _record_login_failure(key: str):
-    with _login_failures_lock:
-        _login_failures[key].append(time.time())
+    rate_limit_service.record(f"login:{key}")
 
 
 def _clear_login_failures(key: str):
-    with _login_failures_lock:
-        _login_failures.pop(key, None)
+    rate_limit_service.clear(f"login:{key}")
 
 
 FORGOT_PASSWORD_LIMIT = 2
 FORGOT_PASSWORD_WINDOW_SECONDS = 60 * 60  # 1 hour
 
-_forgot_password_attempts: dict[str, list[float]] = defaultdict(list)
-_forgot_password_lock = Lock()
-
 
 def _enforce_forgot_password_rate_limit(key: str):
     """Caps password reset requests per (ip, target email) pair per hour."""
-    now = time.time()
-    with _forgot_password_lock:
-        attempts = [t for t in _forgot_password_attempts[key] if now - t < FORGOT_PASSWORD_WINDOW_SECONDS]
-        if len(attempts) >= FORGOT_PASSWORD_LIMIT:
-            _forgot_password_attempts[key] = attempts
-            raise ApiError("only 2 password resets allowed per hour — try again later", 429)
-        attempts.append(now)
-        _forgot_password_attempts[key] = attempts
+    full_key = f"forgot_password:{key}"
+    rate_limit_service.check(full_key, FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_SECONDS, "only 2 password resets allowed per hour — try again later")
+    rate_limit_service.record(full_key)
 
 
 def _session_payload(session):
