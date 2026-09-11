@@ -169,7 +169,7 @@ def search_users(query: str, exclude_user_id: str, doc_id: str | None = None):
         _db()
         .table("profiles")
         .select("id, username, full_name, email")
-        .or_(f"username.ilike.%{query}%,email.ilike.%{query}%")
+        .ilike("username", f"%{query}%")
         .neq("id", exclude_user_id)
         .limit(8)
         .execute()

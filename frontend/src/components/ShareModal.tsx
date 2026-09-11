@@ -106,7 +106,7 @@ export default function ShareModal({ docId, docTitle, isOwner, canInvite, onClos
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by username or email"
+              placeholder="Search by username"
               style={{ padding: "11px 13px", border: "1px solid var(--border-input)", borderRadius: 9, fontSize: 14, background: "#f8f4ea" }}
             />
             {results.map((r) => {
