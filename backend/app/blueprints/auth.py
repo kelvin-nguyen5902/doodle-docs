@@ -52,12 +52,12 @@ def _enforce_signup_rate_limit(ip: str):
     rate_limit_service.record(key)
 
 
-LOGIN_FAILURE_LIMIT = 10
+LOGIN_FAILURE_LIMIT = 20
 LOGIN_FAILURE_WINDOW_SECONDS = 60 * 60  # 1 hour
 
 
 def _enforce_login_rate_limit(key: str):
-    """Caps failed login attempts per (ip, account) pair per hour."""
+    """Caps failed login attempts per IP per hour."""
     rate_limit_service.check(f"login:{key}", LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_WINDOW_SECONDS, "too many failed sign-in attempts — try again later")
 
 
@@ -69,14 +69,14 @@ def _clear_login_failures(key: str):
     rate_limit_service.clear(f"login:{key}")
 
 
-FORGOT_PASSWORD_LIMIT = 2
+FORGOT_PASSWORD_LIMIT = 4
 FORGOT_PASSWORD_WINDOW_SECONDS = 60 * 60  # 1 hour
 
 
 def _enforce_forgot_password_rate_limit(key: str):
-    """Caps password reset requests per (ip, target email) pair per hour."""
+    """Caps password reset requests per IP per hour."""
     full_key = f"forgot_password:{key}"
-    rate_limit_service.check(full_key, FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_SECONDS, "only 2 password resets allowed per hour — try again later")
+    rate_limit_service.check(full_key, FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_SECONDS, f"only {FORGOT_PASSWORD_LIMIT} password resets allowed per hour — try again later")
     rate_limit_service.record(full_key)
 
 
@@ -186,7 +186,7 @@ def login():
     if not identifier or not password:
         raise ApiError("username/email and password are required", 400)
 
-    rate_key = f"{_client_ip()}:{identifier.lower()}"
+    rate_key = _client_ip()
     _enforce_login_rate_limit(rate_key)
 
     auth_email = _resolve_login_email(identifier)
@@ -213,7 +213,7 @@ def forgot_password():
     if not email:
         raise ApiError("email is required", 400)
 
-    rate_key = f"{_client_ip()}:{email.lower()}"
+    rate_key = _client_ip()
     _enforce_forgot_password_rate_limit(rate_key)
 
     existing = get_supabase_admin().table("profiles").select("id").ilike("email", email).maybe_single().execute()
