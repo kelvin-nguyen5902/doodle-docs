@@ -56,28 +56,37 @@ LOGIN_FAILURE_LIMIT = 20
 LOGIN_FAILURE_WINDOW_SECONDS = 60 * 60  # 1 hour
 
 
-def _enforce_login_rate_limit(key: str):
-    """Caps failed login attempts per IP per hour."""
-    rate_limit_service.check(f"login:{key}", LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_WINDOW_SECONDS, "too many failed sign-in attempts — try again later")
+def _enforce_login_rate_limit(ip: str, identifier: str):
+    """Caps failed login attempts per IP, and independently per account, per
+    hour — either one alone can trip the limit, so an attacker can't dodge
+    the per-account limit just by rotating IPs."""
+    message = "too many failed sign-in attempts — try again later"
+    rate_limit_service.check(f"login_ip:{ip}", LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_WINDOW_SECONDS, message)
+    rate_limit_service.check(f"login_id:{identifier}", LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_WINDOW_SECONDS, message)
 
 
-def _record_login_failure(key: str):
-    rate_limit_service.record(f"login:{key}")
+def _record_login_failure(ip: str, identifier: str):
+    rate_limit_service.record(f"login_ip:{ip}")
+    rate_limit_service.record(f"login_id:{identifier}")
 
 
-def _clear_login_failures(key: str):
-    rate_limit_service.clear(f"login:{key}")
+def _clear_login_failures(ip: str, identifier: str):
+    rate_limit_service.clear(f"login_ip:{ip}")
+    rate_limit_service.clear(f"login_id:{identifier}")
 
 
 FORGOT_PASSWORD_LIMIT = 4
 FORGOT_PASSWORD_WINDOW_SECONDS = 60 * 60  # 1 hour
 
 
-def _enforce_forgot_password_rate_limit(key: str):
-    """Caps password reset requests per IP per hour."""
-    full_key = f"forgot_password:{key}"
-    rate_limit_service.check(full_key, FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_SECONDS, f"only {FORGOT_PASSWORD_LIMIT} password resets allowed per hour — try again later")
-    rate_limit_service.record(full_key)
+def _enforce_forgot_password_rate_limit(ip: str, email: str):
+    """Caps password reset requests per IP, and independently per target
+    email, per hour — either one alone can trip the limit."""
+    message = f"only {FORGOT_PASSWORD_LIMIT} password resets allowed per hour — try again later"
+    rate_limit_service.check(f"forgot_password_ip:{ip}", FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_SECONDS, message)
+    rate_limit_service.check(f"forgot_password_email:{email}", FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_SECONDS, message)
+    rate_limit_service.record(f"forgot_password_ip:{ip}")
+    rate_limit_service.record(f"forgot_password_email:{email}")
 
 
 def _session_payload(session):
@@ -186,22 +195,23 @@ def login():
     if not identifier or not password:
         raise ApiError("username/email and password are required", 400)
 
-    rate_key = _client_ip()
-    _enforce_login_rate_limit(rate_key)
+    ip = _client_ip()
+    identifier_key = identifier.lower()
+    _enforce_login_rate_limit(ip, identifier_key)
 
     auth_email = _resolve_login_email(identifier)
     if not auth_email:
-        _record_login_failure(rate_key)
+        _record_login_failure(ip, identifier_key)
         raise ApiError("invalid login credentials", 401)
 
     client = new_auth_client()
     try:
         res = client.auth.sign_in_with_password({"email": auth_email, "password": password})
     except Exception as e:
-        _record_login_failure(rate_key)
+        _record_login_failure(ip, identifier_key)
         _raise_from_auth_error(e, 401)
 
-    _clear_login_failures(rate_key)
+    _clear_login_failures(ip, identifier_key)
     return jsonify(_session_payload(res.session))
 
 
@@ -213,8 +223,7 @@ def forgot_password():
     if not email:
         raise ApiError("email is required", 400)
 
-    rate_key = _client_ip()
-    _enforce_forgot_password_rate_limit(rate_key)
+    _enforce_forgot_password_rate_limit(_client_ip(), email.lower())
 
     existing = get_supabase_admin().table("profiles").select("id").ilike("email", email).maybe_single().execute()
     if existing and existing.data:
