@@ -16,6 +16,26 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$")
 # Fake email domain used for accounts signed up without a real email.
 NOEMAIL_DOMAIN = "noemail.invalid"
 
+
+def _client_ip() -> str:
+    """Resolves the real client IP for rate limiting.
+
+    Render (and most hosts) terminate the connection at a reverse proxy, so
+    request.remote_addr is that proxy's own address — constant per request
+    but NOT the same across requests, since Render's edge itself load
+    balances through multiple internal addresses. That made every rate
+    limit key effectively unique, silently disabling all three limiters in
+    production. X-Forwarded-For's last entry is the address our one trusted
+    proxy hop actually observed (a client can prepend fake entries before
+    that, but can't override what the proxy itself appends), so that's the
+    one to trust — not the first entry, which is spoofable.
+    """
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.remote_addr or "unknown"
+
+
 # Rate limit state lives in Postgres (rate_limit_events), not in process
 # memory, so it survives backend restarts — including Render's free-tier
 # cold starts after the service spins down from inactivity, which would
@@ -82,7 +102,7 @@ def _raise_from_auth_error(e: Exception, fallback_status: int):
 @bp.post("/auth/signup")
 def signup():
     """Creates a new account and returns a session, or a pending confirmation flag."""
-    _enforce_signup_rate_limit(request.remote_addr or "unknown")
+    _enforce_signup_rate_limit(_client_ip())
 
     body = request.get_json(silent=True) or {}
     email = (body.get("email") or "").strip()
@@ -166,7 +186,7 @@ def login():
     if not identifier or not password:
         raise ApiError("username/email and password are required", 400)
 
-    rate_key = f"{request.remote_addr or 'unknown'}:{identifier.lower()}"
+    rate_key = f"{_client_ip()}:{identifier.lower()}"
     _enforce_login_rate_limit(rate_key)
 
     auth_email = _resolve_login_email(identifier)
@@ -193,7 +213,7 @@ def forgot_password():
     if not email:
         raise ApiError("email is required", 400)
 
-    rate_key = f"{request.remote_addr or 'unknown'}:{email.lower()}"
+    rate_key = f"{_client_ip()}:{email.lower()}"
     _enforce_forgot_password_rate_limit(rate_key)
 
     existing = get_supabase_admin().table("profiles").select("id").ilike("email", email).maybe_single().execute()
