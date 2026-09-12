@@ -20,16 +20,19 @@ NOEMAIL_DOMAIN = "noemail.invalid"
 def _client_ip() -> str:
     """Resolves the real client IP for rate limiting.
 
-    Render (and most hosts) terminate the connection at a reverse proxy, so
-    request.remote_addr is that proxy's own address — constant per request
-    but NOT the same across requests, since Render's edge itself load
-    balances through multiple internal addresses. That made every rate
-    limit key effectively unique, silently disabling all three limiters in
-    production. X-Forwarded-For's last entry is the address our one trusted
-    proxy hop actually observed (a client can prepend fake entries before
-    that, but can't override what the proxy itself appends), so that's the
-    one to trust — not the first entry, which is spoofable.
+    Render fronts every *.onrender.com deployment with Cloudflare, so the
+    connection Flask actually sees always originates from one of
+    Cloudflare's own edge IPs — a different one per request, not the real
+    client and not stable across requests. That made every rate limit key
+    effectively unique, silently disabling all three limiters in
+    production. Cloudflare sets CF-Connecting-IP to the true client IP on
+    every request it proxies, stripping any client-supplied value first (so
+    it can't be spoofed), which is what to trust here — X-Forwarded-For's
+    hop order isn't reliable once there's more than one proxy in front.
     """
+    cf_ip = request.headers.get("CF-Connecting-IP")
+    if cf_ip:
+        return cf_ip.strip()
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[-1].strip()
