@@ -143,26 +143,45 @@ def signup():
 
     has_email = bool(email)
     auth_email = email if has_email else f"{username}@{NOEMAIL_DOMAIN}"
+    user_metadata = {"full_name": full_name, "username": username, "has_email": has_email}
 
-    client = new_auth_client()
+    if has_email:
+        # A real address was given — require the normal confirmation flow.
+        client = new_auth_client()
+        try:
+            res = client.auth.sign_up({"email": auth_email, "password": password, "options": {"data": user_metadata}})
+        except Exception as e:
+            message = getattr(e, "message", "") or str(e)
+            if "Database error saving new user" in message:
+                raise ApiError("username already exists", 409)
+            if "already registered" in message.lower():
+                raise ApiError("account with that email already exists", 409)
+            _raise_from_auth_error(e, 400)
+
+        if res.session is None:
+            return jsonify({"pending_confirmation": True}), 202
+
+        return jsonify(_session_payload(res.session)), 201
+
+    # No real email was given, so the fake @noemail.invalid address could
+    # never receive a confirmation link. Create this account pre-confirmed
+    # via the admin API — bypassing the project's "Confirm email"
+    # requirement for this one account only, since there's no address for
+    # it to ever confirm — then sign in immediately, same as before.
     try:
-        res = client.auth.sign_up(
-            {
-                "email": auth_email,
-                "password": password,
-                "options": {"data": {"full_name": full_name, "username": username, "has_email": has_email}},
-            }
+        get_supabase_admin().auth.admin.create_user(
+            {"email": auth_email, "password": password, "email_confirm": True, "user_metadata": user_metadata}
         )
     except Exception as e:
         message = getattr(e, "message", "") or str(e)
-        if "Database error saving new user" in message:
+        if "Database error saving new user" in message or "already registered" in message.lower():
             raise ApiError("username already exists", 409)
-        if "already registered" in message.lower():
-            raise ApiError("account with that email already exists", 409)
         _raise_from_auth_error(e, 400)
 
-    if res.session is None:
-        return jsonify({"pending_confirmation": True}), 202
+    try:
+        res = new_auth_client().auth.sign_in_with_password({"email": auth_email, "password": password})
+    except Exception as e:
+        _raise_from_auth_error(e, 400)
 
     return jsonify(_session_payload(res.session)), 201
 
