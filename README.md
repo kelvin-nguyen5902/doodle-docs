@@ -32,9 +32,7 @@ The app uses Supabase for its database and authentication. To setup your own Sup
 
 1. Create a project at https://supabase.com .
 2. Open the SQL Editor and copy and paste contents from supabase/schema.sql
-3. Under Authentication > Providers > Email, turn Confirm email on. Username-only accounts
-   (no real email) are created pre-confirmed via the admin API regardless, so this only
-   affects accounts that provide a real email.
+3. Under Authentication > Providers > Email, turn Confirm email on.
 4. Under Authentication > URL Configuration > Site URL, change to `http://localhost:5173`
 5. Under Authentication > URL Configuration > Redirect URLs, add `http://localhost:5173/reset-password`
 
