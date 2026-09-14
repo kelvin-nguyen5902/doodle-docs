@@ -126,6 +126,13 @@ def signup():
         raise ApiError("password is required", 400)
     if email and not EMAIL_RE.match(email):
         raise ApiError("enter a valid email address", 400)
+    if email.lower().endswith(f"@{NOEMAIL_DOMAIN}"):
+        # This domain is a sentinel for accounts with no real email — never
+        # a real address someone could actually own. Without this check,
+        # anyone could squat another username's derived fake-email slot by
+        # registering it as their own "real" email, blocking that username
+        # from ever signing up without an email later.
+        raise ApiError("enter a valid email address", 400)
     if not full_name:
         raise ApiError("full_name is required", 400)
     if len(full_name) > 100:

@@ -158,7 +158,8 @@ export default function AuthPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
               {resetSent ? (
                 <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  If an account exists for that email, we've sent a link to reset your password.
+                  If an account exists for that email, we've sent a link to reset your password. Make sure to
+                  check your spam folder if you can't find it.
                 </div>
               ) : (
                 <>
@@ -222,7 +223,7 @@ export default function AuthPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
               <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>
                 We've sent a confirmation link to <strong style={{ color: "var(--text)" }}>{email.trim()}</strong>.
-                Check your email, then sign in.
+                Check your email, then sign in. Make sure to check your spam folder if you can't find it.
               </div>
               <button
                 type="button"
