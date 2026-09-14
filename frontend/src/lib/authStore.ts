@@ -88,7 +88,9 @@ async function authFetch(path: string, body: unknown): Promise<SessionPayload> {
   return data as SessionPayload;
 }
 
-export async function signUp(email: string | null, password: string, fullName: string, username: string): Promise<void> {
+// Returns true if the account needs email confirmation before signing in,
+// false if it's already logged in.
+export async function signUp(email: string | null, password: string, fullName: string, username: string): Promise<boolean> {
   const res = await fetch(`${BASE_URL}/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -97,9 +99,10 @@ export async function signUp(email: string | null, password: string, fullName: s
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || "Something went wrong.");
   if (res.status === 202) {
-    throw new Error("Check your email to confirm your account, then sign in.");
+    return true;
   }
   setTokens(fromSessionPayload(data as SessionPayload));
+  return false;
 }
 
 export async function signIn(identifier: string, password: string): Promise<void> {

@@ -39,6 +39,7 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [signupPendingConfirmation, setSignupPendingConfirmation] = useState(false);
 
   useEffect(() => {
     if (!justResetPassword) return;
@@ -57,6 +58,7 @@ export default function AuthPage() {
     setUsername("");
     setError("");
     setResetSent(false);
+    setSignupPendingConfirmation(false);
   }
 
   if (isAuthenticated) return <Navigate to="/" replace />;
@@ -133,7 +135,8 @@ export default function AuthPage() {
 
     setSubmitting(true);
     try {
-      await signUp(trimmedEmail || null, password, fullName.trim(), trimmedUsername.toLowerCase());
+      const pending = await signUp(trimmedEmail || null, password, fullName.trim(), trimmedUsername.toLowerCase());
+      if (pending) setSignupPendingConfirmation(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -207,6 +210,29 @@ export default function AuthPage() {
                   border: "1px solid var(--border-input)",
                   borderRadius: 10,
                   background: "var(--card)",
+                  fontSize: 15,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Back to sign in
+              </button>
+            </div>
+          ) : isRegister && signupPendingConfirmation ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+              <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                We've sent a confirmation link to <strong style={{ color: "var(--text)" }}>{email.trim()}</strong>.
+                Check your email, then sign in.
+              </div>
+              <button
+                type="button"
+                onClick={() => switchMode("login")}
+                style={{
+                  padding: 13,
+                  border: "none",
+                  borderRadius: 10,
+                  background: "var(--ac)",
+                  color: "var(--card)",
                   fontSize: 15,
                   fontWeight: 500,
                   cursor: "pointer",

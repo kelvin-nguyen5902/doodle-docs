@@ -13,7 +13,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string | null, password: string, fullName: string, username: string) => Promise<void>;
+  // Resolves to true if the account needs email confirmation before signing in.
+  signUp: (email: string | null, password: string, fullName: string, username: string) => Promise<boolean>;
   signIn: (identifier: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signUp(email: string | null, password: string, fullName: string, username: string) {
-    await authStore.signUp(email, password, fullName, username);
+    return authStore.signUp(email, password, fullName, username);
   }
 
   async function signIn(identifier: string, password: string) {
