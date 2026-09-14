@@ -3,6 +3,9 @@
 A full-stack document collaboration app with live text editing and drawing.
 
 **Live app:** https://doodle-docs-rho.vercel.app/
+<br/>
+<br/>
+To Note: Email confirmation and password-reset emails may not successfully send due to google smtp and free gmail account limits (500 emails per day).
 
 ## Features
 
